@@ -24,7 +24,7 @@
             justify-content: center;
             height: 100vh;
             background-color: #f5f5f7;
-            perspective: 1000px; /* 辅助解决 Safari 动画闪烁 */
+            perspective: 1000px;
         }
 
         /* 扩展后的背景大画布：保证移动过程中绝对不会穿帮 */
@@ -44,7 +44,6 @@
             gap: 40px;
             width: 100%;
             height: 100%;
-            /* 开启 GPU 加速，解决循环末尾回跳时的撕裂感 */
             will-change: transform;
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
@@ -67,7 +66,6 @@
             flex-shrink: 0;
         }
 
-        /* 采用 3d 转换强制硬件加速 */
         @keyframes moveDiag {
             0% { transform: translate3d(0, 0, 0); }
             100% { transform: translate3d(960px, -960px, 0); }
@@ -83,7 +81,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             padding: 50px;
             width: 90%;
-            max-width: 1000px;
+            max-width: 1100px;
             text-align: center;
             z-index: 1;
         }
@@ -119,23 +117,30 @@
         .court-card {
             background: rgba(255, 255, 255, 0.6);
             border-radius: 30px;
-            padding: 30px;
+            padding: 30px 20px;
             box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .court-title { font-size: 20px; font-weight: 700; margin-bottom: 25px; color: #1d1d1f; }
-        .match-display { display: flex; align-items: center; justify-content: space-between; }
+        .match-display { display: flex; align-items: center; justify-content: space-between; width: 100%;}
         .team-box { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .team-name { font-size: 24px; font-weight: 700; line-height: 1.2; }
+
         .win-badge {
             background: white;
-            padding: 5px 12px;
-            border-radius: 12px;
+            padding: 6px 14px;
+            border-radius: 14px;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-secondary);
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            white-space: nowrap;
         }
+
+        .win-badge strong { color: var(--text-main); font-weight: 800;}
 
         .vs-circle {
             width: 40px; height: 40px;
@@ -146,6 +151,23 @@
             margin: 0 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); flex-shrink: 0;
         }
 
+        .referee-badge {
+            margin-top: 25px;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1d1d1f;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+            /* 保证遇到长队名时不会挤破布局 */
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .empty-state { color: var(--text-secondary); font-size: 16px; padding: 40px 0; font-weight: 500; }
 
         @media (max-width: 768px) {
@@ -154,6 +176,7 @@
             h1 { font-size: 28px; }
             .team-name { font-size: 18px; }
             .vs-circle { width: 30px; height: 30px; font-size: 12px; }
+            .win-badge { font-size: 11px; padding: 4px 10px; }
         }
     </style>
 </head>
@@ -177,6 +200,7 @@
                 <div class="match-display" id="center-court-display">
                     <div class="empty-state">加载中...</div>
                 </div>
+                <div id="center-court-referee"></div>
             </div>
 
             <div class="court-card">
@@ -184,12 +208,13 @@
                 <div class="match-display" id="side-court-display">
                     <div class="empty-state">加载中...</div>
                 </div>
+                <div id="side-court-referee"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 生成大矩阵芝麻动画背景 (50 x 50 超大覆盖)
+        // 1. 生成大矩阵芝麻动画背景
         const patternContainer = document.getElementById('bg-pattern');
         const colors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'White', 'Black'];
 
@@ -199,7 +224,6 @@
             const colorIndex = i % 8;
             const color = colors[colorIndex];
 
-            // 使用 innerHTML 批量插入提高渲染性能
             let imgsHTML = '';
             for(let j = 0; j < 50; j++) {
                 imgsHTML += `<img src="sesame_0${colorIndex+1}_${color}.png" onerror="this.style.opacity=0">`;
@@ -208,7 +232,23 @@
             patternContainer.appendChild(row);
         }
 
-        // 2. 数据与赛程逻辑（已加入对应赛制规则后缀文字）
+        // 2. 裁判映射字典（分为固定人名和小队映射）
+        const staticReferees = {
+            'a1_a2': 'KK/坤 凯歌', 'a3_a4': '智/link 小黑', 'a1_a3': '白/DPR 宇',
+            'a2_a4': '赖/RSA KMI', 'a1_a4': '白/RSA KMI', 'a2_a3': '豆/米妮 什么',
+            'b1_b2': '鹿/RD BG', 'b3_b4': '铅/倩倩 D林', 'b1_b3': '邓/W BG',
+            'b2_b4': '铅/肉 皮卡丘', 'b1_b4': '邓/肉 皮卡丘', 'b2_b3': 'RD/永杰 樊'
+        };
+
+        const dynamicReferees = {
+            'A1_B4': ['A4', 'B1'], 'A4_B1': ['A1', 'B4'], 'A2_B3': ['A3', 'B2'], 'A3_B2': ['A2', 'B3'],
+            'C1_C2': ['C3', 'C4'], 'C3_C4': ['C1', 'C2'], 'C1_C3': ['C2', 'C4'],
+            'C2_C4': ['C1', 'C3'], 'C1_C4': ['C2', 'C3'], 'C2_C3': ['C1', 'C4'],
+            'D1_D2': ['D3', 'D4'], 'D3_D4': ['D1', 'D2'], 'D1_D3': ['D2', 'D4'],
+            'D2_D4': ['D1', 'D3'], 'D1_D4': ['D2', 'D3'], 'D2_D3': ['D1', 'D4']
+        };
+
+        // 3. 数据与赛程逻辑
         const stagesConfig = [
             { name: "1、小组循环（25分金球）", center: ['a1_a2','a3_a4','a1_a3','a2_a4','a1_a4','a2_a3'], side: ['b1_b2','b3_b4','b1_b3','b2_b4','b1_b4','b2_b3'], key: "group" },
             { name: "2、交叉淘汰（2分差胜/30分封顶）", center: ['A1_B4', 'A4_B1'], side: ['A2_B3', 'A3_B2'], key: "knockout" },
@@ -222,8 +262,34 @@
             return null;
         }
 
+        // 增强版：获取队伍真实名称
+        function getTeamName(data, tId) {
+            if (!tId) return "待定";
+            if (data.teams && data.teams[tId]) return data.teams[tId];
+            if (data.calculated && data.calculated.ranks && data.calculated.ranks[tId] && data.calculated.ranks[tId].name) return data.calculated.ranks[tId].name;
+            if (data.calculated && data.calculated.placement_teams && data.calculated.placement_teams[tId]) return data.calculated.placement_teams[tId];
+            return tId;
+        }
+
+        // 动态解析裁判名称（将代号转为实际队名）
+        function getRefereeName(data, matchId) {
+            if (staticReferees[matchId]) return staticReferees[matchId];
+            if (dynamicReferees[matchId]) {
+                const [r1, r2] = dynamicReferees[matchId];
+                const n1 = getTeamName(data, r1);
+                const n2 = getTeamName(data, r2);
+
+                // 如果返回的还是 A1/B1 这种代号，补充一个“队”字以便区分；如果已经是队名，则直接使用
+                const formatName = (code, name) => name === code ? `${name}队` : name;
+                return `${formatName(r1, n1)} / ${formatName(r2, n2)}`;
+            }
+            return '待定';
+        }
+
+        // 计算当前阶段的胜场数
         function getWinsInStage(data, stageKey, matchArray, teamId) {
-            if (!teamId) return 0;
+            let teamName = getTeamName(data, teamId);
+            if (!teamName || teamName === '待定') return 0;
             let wins = 0;
             for (let m of matchArray) {
                 let score = getScore(data, stageKey, m);
@@ -231,20 +297,38 @@
                     let [s1, s2] = score.split('-').map(Number);
                     if (!isNaN(s1) && !isNaN(s2)) {
                         let [t1, t2] = m.split('_');
-                        if (t1 === teamId && s1 > s2) wins++;
-                        if (t2 === teamId && s2 > s1) wins++;
+                        let n1 = getTeamName(data, t1);
+                        let n2 = getTeamName(data, t2);
+                        if (n1 === teamName && s1 > s2) wins++;
+                        if (n2 === teamName && s2 > s1) wins++;
                     }
                 }
             }
             return wins;
         }
 
-        function getTeamName(data, tId) {
-            if (!tId) return "待定";
-            if (data.teams[tId]) return data.teams[tId];
-            if (data.calculated.ranks && data.calculated.ranks[tId]) return data.calculated.ranks[tId].name || "待定";
-            if (data.calculated.placement_teams && data.calculated.placement_teams[tId]) return data.calculated.placement_teams[tId] || "待定";
-            return tId;
+        // 全局计算该队伍整届比赛的累计胜场
+        function calculateTotalWins(data, teamName) {
+            if (!teamName || teamName === '待定' || teamName.length <= 2) return 0; // 防止拿 A1 去算总分
+            let totalWins = 0;
+            const allStages = ['group', 'knockout', 'placement_top', 'placement_bot'];
+            allStages.forEach(stage => {
+                const matches = data.scores[stage] || {};
+                for (let matchId in matches) {
+                    let score = matches[matchId];
+                    if (score) {
+                        let [s1, s2] = score.split('-').map(Number);
+                        if (!isNaN(s1) && !isNaN(s2)) {
+                            let [t1_id, t2_id] = matchId.split('_');
+                            let n1 = getTeamName(data, t1_id);
+                            let n2 = getTeamName(data, t2_id);
+                            if (n1 === teamName && s1 > s2) totalWins++;
+                            if (n2 === teamName && s2 > s1) totalWins++;
+                        }
+                    }
+                }
+            });
+            return totalWins;
         }
 
         async function fetchAndUpdate() {
@@ -267,17 +351,21 @@
                 if (!cMatch && !sMatch) {
                     document.getElementById('stage-badge').innerText = "比赛已全部结束";
                     document.getElementById('center-court-display').innerHTML = '<div class="empty-state">所有对局已完成</div>';
+                    document.getElementById('center-court-referee').innerHTML = '';
                     document.getElementById('side-court-display').innerHTML = '<div class="empty-state">所有对局已完成</div>';
+                    document.getElementById('side-court-referee').innerHTML = '';
                     return;
                 }
 
-                // 注入带有补充规则的赛事标题
                 document.getElementById('stage-badge').innerText = "当前赛程：" + currentStage.name;
 
-                const renderCourt = (containerId, matchId, matchesArray) => {
+                const renderCourt = (containerId, refContainerId, matchId, matchesArray) => {
                     const container = document.getElementById(containerId);
+                    const refContainer = document.getElementById(refContainerId);
+
                     if (!matchId) {
                         container.innerHTML = '<div class="empty-state">本场地当前阶段比赛已结束</div>';
+                        refContainer.innerHTML = '';
                         return;
                     }
 
@@ -285,24 +373,31 @@
                     const t1_name = getTeamName(data, t1_id);
                     const t2_name = getTeamName(data, t2_id);
 
-                    const w1 = getWinsInStage(data, currentStage.key, matchesArray, t1_id);
-                    const w2 = getWinsInStage(data, currentStage.key, matchesArray, t2_id);
+                    // 获取阶段胜场和总胜场
+                    const w1_stage = getWinsInStage(data, currentStage.key, matchesArray, t1_id);
+                    const w2_stage = getWinsInStage(data, currentStage.key, matchesArray, t2_id);
+                    const w1_total = calculateTotalWins(data, t1_name);
+                    const w2_total = calculateTotalWins(data, t2_name);
 
                     container.innerHTML = `
                         <div class="team-box">
                             <div class="team-name">${t1_name}</div>
-                            <div class="win-badge">当前阶段胜局: ${w1}</div>
+                            <div class="win-badge">本赛程胜场: <strong>${w1_stage}</strong> &nbsp;|&nbsp; 累计总胜场: <strong>${w1_total}</strong></div>
                         </div>
                         <div class="vs-circle">VS</div>
                         <div class="team-box">
                             <div class="team-name">${t2_name}</div>
-                            <div class="win-badge">当前阶段胜局: ${w2}</div>
+                            <div class="win-badge">本赛程胜场: <strong>${w2_stage}</strong> &nbsp;|&nbsp; 累计总胜场: <strong>${w2_total}</strong></div>
                         </div>
                     `;
+
+                    // 动态获取当值裁判队伍并渲染
+                    const referee = getRefereeName(data, matchId);
+                    refContainer.innerHTML = `<div class="referee-badge">🏐 当值裁判：${referee}</div>`;
                 };
 
-                renderCourt('center-court-display', cMatch, currentStage.center);
-                renderCourt('side-court-display', sMatch, currentStage.side);
+                renderCourt('center-court-display', 'center-court-referee', cMatch, currentStage.center);
+                renderCourt('side-court-display', 'side-court-referee', sMatch, currentStage.side);
 
             } catch (e) {
                 console.error("加载数据失败，请确保服务已启动:", e);
