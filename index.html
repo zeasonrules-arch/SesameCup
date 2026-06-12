@@ -24,23 +24,20 @@
             justify-content: center;
             height: 100vh;
             background-color: #f5f5f7;
-            -webkit-transform: translate3d(0,0,0);
+            /* Force hardware acceleration for the main container */
+            transform: translateZ(0);
         }
 
-        /* 优化后的背景层：只占满屏幕，不再需要巨型容器 */
-        .bg-wrap {
+        /* The new Canvas background container */
+        #bg-canvas {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             z-index: -1;
-            background-image: url('sprites.png'); /* 只请求这一张图 */
-            background-size: 800px 800px;
-            background-repeat: repeat;
-            animation: moveBg 15s linear infinite;
-            will-change: background-position;
-        }
-        @keyframes moveBg {
-            0% { background-position: 0 0; }
-            100% { background-position: 800px -800px; }
+            /* Prevent interaction blocking */
+            pointer-events: none;
         }
 
         /* Frosted Glass Panel */
@@ -178,12 +175,12 @@
 </head>
 <body>
 
-    <div class="bg-wrap" id="bg-wrap"></div>
+    <canvas id="bg-canvas"></canvas>
 
     <div class="glass-panel">
         <div class="title-container">
             <h1>芝麻杯排球年中邀请赛</h1>
-            <div class="subtitle">Slay the Game, Sees the Same | 场上任撕逼，场下皆诡秘💅</div>
+            <div class="subtitle">Slay the Game, Sees the Same | 场上任撕逼，场下皆诡秘💅 | 深圳·雅宝 | 6.13</div>
         </div>
 
         <div class="stage-badge" id="stage-badge">正在加载赛程...</div>
@@ -204,7 +201,127 @@
     </div>
 
     <script>
-        // 2. 裁判映射字典
+        // ==========================================
+        // 1. 极致性能：Canvas 离屏渲染动画引擎
+        // ==========================================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for speed since background is solid
+
+        // 动画参数配置
+        const speed = 1.0; // 移动速度 (像素/帧)
+        const cellSize = 120; // 每个格子的尺寸 (图片80 + 间距40)
+        const maxImgSize = 80;
+        const colors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'White', 'Black'];
+
+        let offset = 0; // 当前位移量
+        let patternCanvas = null; // 离屏缓存画布
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function initCanvasBackground() {
+            let loaded = 0;
+            const images = {};
+
+            // 加载8张原始图片
+            colors.forEach((color, i) => {
+                const img = new Image();
+                img.src = `sesame_0${i+1}_${color}.png`;
+                img.onload = () => {
+                    images[i] = img;
+                    loaded++;
+                    if (loaded === colors.length) createPatternBuffer();
+                };
+                img.onerror = () => {
+                    loaded++;
+                    if (loaded === colors.length) createPatternBuffer();
+                };
+            });
+
+            // 创建离屏缓冲区 (只画一个 8x8 的循环单元)
+            function createPatternBuffer() {
+                const cycleSize = cellSize * colors.length;
+                patternCanvas = document.createElement('canvas');
+                patternCanvas.width = cycleSize;
+                patternCanvas.height = cycleSize;
+                const pCtx = patternCanvas.getContext('2d');
+
+                // 绘制循环贴图
+                for (let row = 0; row < colors.length; row++) {
+                    for (let col = 0; col < colors.length; col++) {
+                        const img = images[row];
+                        if (!img) continue;
+
+                        pCtx.save();
+                        const cx = col * cellSize + cellSize / 2;
+                        const cy = row * cellSize + cellSize / 2;
+                        pCtx.translate(cx, cy);
+                        pCtx.rotate(45 * Math.PI / 180);
+
+                        const ratio = img.width / img.height;
+                        let drawW, drawH;
+                        if (ratio > 1) {
+                            drawW = maxImgSize;
+                            drawH = maxImgSize / ratio;
+                        } else {
+                            drawH = maxImgSize;
+                            drawW = maxImgSize * ratio;
+                        }
+
+                        pCtx.drawImage(img, -drawW/2, -drawH/2, drawW, drawH);
+                        pCtx.restore();
+                    }
+                }
+
+                // 启动渲染循环
+                requestAnimationFrame(renderLoop);
+            }
+        }
+
+        // 核心渲染循环
+        function renderLoop() {
+            if (!patternCanvas) return;
+
+            // 填充底色
+            ctx.fillStyle = '#f5f5f7';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cycleSize = patternCanvas.width;
+
+            // 更新位移 (向右上角移动)
+            offset += speed;
+            if (offset >= cycleSize) {
+                offset -= cycleSize;
+            }
+
+            // 计算需要平铺的行列数以覆盖当前屏幕
+            const cols = Math.ceil(canvas.width / cycleSize) + 1;
+            const rows = Math.ceil(canvas.height / cycleSize) + 1;
+
+            // 将离屏贴图绘制到主屏幕 (带有偏移量)
+            for (let r = -1; r < rows; r++) {
+                for (let c = -1; c < cols; c++) {
+                    ctx.drawImage(
+                        patternCanvas,
+                        c * cycleSize + offset,
+                        r * cycleSize - offset
+                    );
+                }
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        initCanvasBackground();
+
+
+        // ==========================================
+        // 2. 赛事数据逻辑 (保持不变)
+        // ==========================================
         const staticReferees = {
             'a1_a2': 'KK/坤 凯歌', 'a3_a4': '智/link 小黑', 'a1_a3': '白/DPR 宇',
             'a2_a4': '赖/RSA KMI', 'a1_a4': '白/RSA KMI', 'a2_a3': '豆/米妮 什么',
@@ -220,7 +337,6 @@
             'D2_D4': ['D1', 'D3'], 'D1_D4': ['D2', 'D3'], 'D2_D3': ['D1', 'D4']
         };
 
-        // 3. 数据与赛程逻辑
         const stagesConfig = [
             { name: "1、小组循环（25分金球）", center: ['a1_a2','a3_a4','a1_a3','a2_a4','a1_a4','a2_a3'], side: ['b1_b2','b3_b4','b1_b3','b2_b4','b1_b4','b2_b3'], key: "group" },
             { name: "2、交叉淘汰（2分差胜/30分封顶）", center: ['A1_B4', 'A4_B1'], side: ['A2_B3', 'A3_B2'], key: "knockout" },
@@ -372,7 +488,7 @@
                 renderCourt('side-court-display', 'side-court-referee', sMatch, currentStage.side);
 
             } catch (e) {
-                console.error("加载数据失败，请确保服务已启动:", e);
+                console.error("加载数据失败:", e);
             }
         }
 
