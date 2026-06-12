@@ -16,13 +16,13 @@
       "a1_a3": "23-25",
       "a2_a4": "25-18",
       "a1_a4": "25-19",
-      "a2_a3": "",
+      "a2_a3": "16-25",
       "b1_b2": "25-16",
       "b3_b4": "25-17",
       "b1_b3": "16-25",
       "b2_b4": "25-18",
-      "b1_b4": "",
-      "b2_b3": ""
+      "b1_b4": "25-19",
+      "b2_b3": "25-19"
     },
     "knockout": {
       "A1_B4": "",
@@ -50,28 +50,28 @@
   "calculated": {
     "ranks": {
       "A1": {
-        "name": "小白队",
-        "wins": 2,
-        "points": 50,
-        "net_points": 32
+        "name": "江西队",
+        "wins": 3,
+        "points": 75,
+        "net_points": 22
       },
       "B1": {
         "name": "你多接我少接",
         "wins": 2,
-        "points": 50,
-        "net_points": 17
+        "points": 69,
+        "net_points": 11
       },
       "A2": {
-        "name": "江西队",
+        "name": "小白队",
         "wins": 2,
-        "points": 50,
-        "net_points": 13
+        "points": 66,
+        "net_points": 23
       },
       "B2": {
         "name": "深莞牛马",
-        "wins": 1,
-        "points": 41,
-        "net_points": 0
+        "wins": 2,
+        "points": 66,
+        "net_points": 6
       },
       "A3": {
         "name": "九仙女采芝麻",
@@ -81,9 +81,9 @@
       },
       "B3": {
         "name": "美少女战士队",
-        "wins": 1,
-        "points": 41,
-        "net_points": -2
+        "wins": 2,
+        "points": 66,
+        "net_points": 4
       },
       "A4": {
         "name": "什么队",
@@ -94,13 +94,13 @@
       "B4": {
         "name": "WeCan",
         "wins": 0,
-        "points": 35,
-        "net_points": -15
+        "points": 54,
+        "net_points": -21
       }
     },
     "knockout_teams": {
       "A1_B4": {
-        "t1": "小白队",
+        "t1": "江西队",
         "t2": "WeCan"
       },
       "A4_B1": {
@@ -108,7 +108,7 @@
         "t2": "你多接我少接"
       },
       "A2_B3": {
-        "t1": "江西队",
+        "t1": "小白队",
         "t2": "美少女战士队"
       },
       "A3_B2": {

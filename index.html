@@ -24,50 +24,23 @@
             justify-content: center;
             height: 100vh;
             background-color: #f5f5f7;
-            perspective: 1000px;
+            -webkit-transform: translate3d(0,0,0);
         }
 
-        /* 扩展后的背景大画布：保证移动过程中绝对不会穿帮 */
+        /* 优化后的背景层：只占满屏幕，不再需要巨型容器 */
         .bg-wrap {
             position: fixed;
-            top: -1500px;
-            left: -1500px;
-            width: 6000px;
-            height: 6000px;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: -1;
-            pointer-events: none;
+            background-image: url('sprites.png'); /* 只请求这一张图 */
+            background-size: 800px 800px;
+            background-repeat: repeat;
+            animation: moveBg 15s linear infinite;
+            will-change: background-position;
         }
-
-        .bg-pattern {
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            width: 100%;
-            height: 100%;
-            will-change: transform;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            animation: moveDiag 15s linear infinite;
-        }
-
-        .bg-row {
-            display: flex;
-            gap: 40px;
-            flex-wrap: nowrap;
-        }
-
-        .bg-row img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            opacity: 0.9;
-            transform: rotate(45deg);
-            flex-shrink: 0;
-        }
-
-        @keyframes moveDiag {
-            0% { transform: translate3d(0, 0, 0); }
-            100% { transform: translate3d(960px, -960px, 0); }
+        @keyframes moveBg {
+            0% { background-position: 0 0; }
+            100% { background-position: 800px -800px; }
         }
 
         /* Frosted Glass Panel */
@@ -173,7 +146,7 @@
 
         .empty-state { color: var(--text-secondary); font-size: 16px; padding: 40px 0; font-weight: 500; }
 
-        /* ========= 终极移动端完美适配 ========= */
+        /* 移动端完美适配 */
         @media (max-width: 768px) {
             .glass-panel { width: 92%; padding: 25px 15px; border-radius: 30px; overflow-y: auto; max-height: 95vh; }
             .courts-container { grid-template-columns: 1fr; gap: 20px; }
@@ -181,13 +154,9 @@
             h1 { font-size: 24px; margin-bottom: 5px; }
             .subtitle { font-size: 11px; line-height: 1.4; margin-bottom: 20px; }
             .stage-badge { font-size: 13px; padding: 6px 14px; margin-bottom: 20px; }
-
             .team-name { font-size: 18px; }
             .team-box { gap: 8px; }
-
             .vs-circle { width: 32px; height: 32px; font-size: 12px; margin: 0 5px; }
-
-            /* 手机端胜场标签智能折叠：去掉竖线，上下叠放 */
             .win-badge {
                 flex-direction: column;
                 gap: 3px;
@@ -197,8 +166,6 @@
                 width: auto;
             }
             .stat-divider { display: none; }
-
-            /* 手机端裁判允许换行，不加省略号截断 */
             .referee-badge {
                 font-size: 12px;
                 padding: 6px 14px;
@@ -211,14 +178,12 @@
 </head>
 <body>
 
-    <div class="bg-wrap" id="bg-wrap">
-        <div class="bg-pattern" id="bg-pattern"></div>
-    </div>
+    <div class="bg-wrap" id="bg-wrap"></div>
 
     <div class="glass-panel">
         <div class="title-container">
             <h1>芝麻杯排球年中邀请赛</h1>
-            <div class="subtitle">Slay the Game, Sees the Same | 场上任撕逼，场下皆诡秘💅</div>
+            <div class="subtitle">Slay the Game, Sees the Same | 场上任撕逼，场下皆诡秘💅 | 深圳·雅宝 | 6.13</div>
         </div>
 
         <div class="stage-badge" id="stage-badge">正在加载赛程...</div>
@@ -226,41 +191,19 @@
         <div class="courts-container">
             <div class="court-card">
                 <div class="court-title">中间场</div>
-                <div class="match-display" id="center-court-display">
-                    <div class="empty-state">加载中...</div>
-                </div>
+                <div class="match-display" id="center-court-display"><div class="empty-state">加载中...</div></div>
                 <div id="center-court-referee"></div>
             </div>
 
             <div class="court-card">
                 <div class="court-title">边场</div>
-                <div class="match-display" id="side-court-display">
-                    <div class="empty-state">加载中...</div>
-                </div>
+                <div class="match-display" id="side-court-display"><div class="empty-state">加载中...</div></div>
                 <div id="side-court-referee"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 生成大矩阵芝麻动画背景
-        const patternContainer = document.getElementById('bg-pattern');
-        const colors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'White', 'Black'];
-
-        for (let i = 0; i < 50; i++) {
-            const row = document.createElement('div');
-            row.className = 'bg-row';
-            const colorIndex = i % 8;
-            const color = colors[colorIndex];
-
-            let imgsHTML = '';
-            for(let j = 0; j < 50; j++) {
-                imgsHTML += `<img src="sesame_0${colorIndex+1}_${color}.png" onerror="this.style.opacity=0">`;
-            }
-            row.innerHTML = imgsHTML;
-            patternContainer.appendChild(row);
-        }
-
         // 2. 裁判映射字典
         const staticReferees = {
             'a1_a2': 'KK/坤 凯歌', 'a3_a4': '智/link 小黑', 'a1_a3': '白/DPR 宇',
@@ -356,7 +299,6 @@
 
         async function fetchAndUpdate() {
             try {
-                // 加时间戳防止缓存
                 const res = await fetch('data.json?t=' + Date.now());
                 const data = await res.json();
 
@@ -402,7 +344,6 @@
                     const w1_total = calculateTotalWins(data, t1_name);
                     const w2_total = calculateTotalWins(data, t2_name);
 
-                    // 响应式 DOM 结构注入：使用 span 和 class 进行精细化布局控制
                     container.innerHTML = `
                         <div class="team-box">
                             <div class="team-name">${t1_name}</div>
