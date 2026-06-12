@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>芝麻杯排球年中邀请赛 | 现场对局</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-main: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent-blue: #007AFF;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f5f7;
+            perspective: 1000px; /* 辅助解决 Safari 动画闪烁 */
+        }
+
+        /* 扩展后的背景大画布：保证移动过程中绝对不会穿帮 */
+        .bg-wrap {
+            position: fixed;
+            top: -1500px;
+            left: -1500px;
+            width: 6000px;
+            height: 6000px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .bg-pattern {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            width: 100%;
+            height: 100%;
+            /* 开启 GPU 加速，解决循环末尾回跳时的撕裂感 */
+            will-change: transform;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            /* 8个方块为一个周期 (120px * 8 = 960px) */
+            animation: moveDiag 15s linear infinite;
+        }
+
+        .bg-row {
+            display: flex;
+            gap: 40px;
+            flex-wrap: nowrap;
+        }
+
+        .bg-row img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            opacity: 0.9;
+            transform: rotate(45deg);
+            flex-shrink: 0;
+        }
+
+        /* 采用 3d 转换强制硬件加速 */
+        @keyframes moveDiag {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(960px, -960px, 0); }
+        }
+
+        /* Frosted Glass Panel */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            padding: 50px;
+            width: 90%;
+            max-width: 1000px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .title-container { margin-bottom: 40px; }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            background: linear-gradient(90deg, #FF3B30, #FF9500, #FFCC00, #34C759, #007AFF, #5856D6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .subtitle { font-size: 15px; color: var(--text-secondary); font-weight: 500; letter-spacing: 1px; }
+
+        .stage-badge {
+            display: inline-block;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--accent-blue);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .courts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+
+        .court-card {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+        }
+
+        .court-title { font-size: 20px; font-weight: 700; margin-bottom: 25px; color: #1d1d1f; }
+        .match-display { display: flex; align-items: center; justify-content: space-between; }
+        .team-box { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .team-name { font-size: 24px; font-weight: 700; line-height: 1.2; }
+        .win-badge {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .vs-circle {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #f5f5f7, #e5e5ea);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; color: #86868b;
+            margin: 0 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+
+        .empty-state { color: var(--text-secondary); font-size: 16px; padding: 40px 0; font-weight: 500; }
+
+        @media (max-width: 768px) {
+            .glass-panel { padding: 30px 20px; border-radius: 30px; overflow-y: auto; max-height: 90vh; }
+            .courts-container { grid-template-columns: 1fr; }
+            h1 { font-size: 28px; }
+            .team-name { font-size: 18px; }
+            .vs-circle { width: 30px; height: 30px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-wrap" id="bg-wrap">
+        <div class="bg-pattern" id="bg-pattern"></div>
+    </div>
+
+    <div class="glass-panel">
+        <div class="title-container">
+            <h1>芝麻杯排球年中邀请赛</h1>
+            <div class="subtitle">Slay the Game, Sees the Same | 场上任撕逼，场下皆诡秘💅 | 深圳·雅宝 | 6.13</div>
+        </div>
+
+        <div class="stage-badge" id="stage-badge">正在加载赛程...</div>
+
+        <div class="courts-container">
+            <div class="court-card">
+                <div class="court-title">中间场</div>
+                <div class="match-display" id="center-court-display">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+
+            <div class="court-card">
+                <div class="court-title">边场</div>
+                <div class="match-display" id="side-court-display">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 生成大矩阵芝麻动画背景 (50 x 50 超大覆盖)
+        const patternContainer = document.getElementById('bg-pattern');
+        const colors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'White', 'Black'];
+
+        for (let i = 0; i < 50; i++) {
+            const row = document.createElement('div');
+            row.className = 'bg-row';
+            const colorIndex = i % 8;
+            const color = colors[colorIndex];
+
+            // 使用 innerHTML 批量插入提高渲染性能
+            let imgsHTML = '';
+            for(let j = 0; j < 50; j++) {
+                imgsHTML += `<img src="sesame_0${colorIndex+1}_${color}.png" onerror="this.style.opacity=0">`;
+            }
+            row.innerHTML = imgsHTML;
+            patternContainer.appendChild(row);
+        }
+
+        // 2. 数据与赛程逻辑（已加入对应赛制规则后缀文字）
+        const stagesConfig = [
+            { name: "1、小组循环（25分金球）", center: ['a1_a2','a3_a4','a1_a3','a2_a4','a1_a4','a2_a3'], side: ['b1_b2','b3_b4','b1_b3','b2_b4','b1_b4','b2_b3'], key: "group" },
+            { name: "2、交叉淘汰（2分差胜/30分封顶）", center: ['A1_B4', 'A4_B1'], side: ['A2_B3', 'A3_B2'], key: "knockout" },
+            { name: "3、排位赛（25分金球）", center: ['C1_C2','C3_C4','C1_C3','C2_C4','C1_C4','C2_C3'], side: ['D1_D2','D3_D4','D1_D3','D2_D4','D1_D4','D2_D3'], key: "placement" }
+        ];
+
+        function getScore(data, stageKey, matchId) {
+            if (stageKey === 'group') return data.scores.group[matchId];
+            if (stageKey === 'knockout') return data.scores.knockout[matchId];
+            if (stageKey === 'placement') return data.scores.placement_top[matchId] || data.scores.placement_bot[matchId];
+            return null;
+        }
+
+        function getWinsInStage(data, stageKey, matchArray, teamId) {
+            if (!teamId) return 0;
+            let wins = 0;
+            for (let m of matchArray) {
+                let score = getScore(data, stageKey, m);
+                if (score) {
+                    let [s1, s2] = score.split('-').map(Number);
+                    if (!isNaN(s1) && !isNaN(s2)) {
+                        let [t1, t2] = m.split('_');
+                        if (t1 === teamId && s1 > s2) wins++;
+                        if (t2 === teamId && s2 > s1) wins++;
+                    }
+                }
+            }
+            return wins;
+        }
+
+        function getTeamName(data, tId) {
+            if (!tId) return "待定";
+            if (data.teams[tId]) return data.teams[tId];
+            if (data.calculated.ranks && data.calculated.ranks[tId]) return data.calculated.ranks[tId].name || "待定";
+            if (data.calculated.placement_teams && data.calculated.placement_teams[tId]) return data.calculated.placement_teams[tId] || "待定";
+            return tId;
+        }
+
+        async function fetchAndUpdate() {
+            try {
+                const res = await fetch('data.json?t=' + Date.now());
+                const data = await res.json();
+
+                let currentStage = stagesConfig[0];
+                let cMatch = null, sMatch = null;
+
+                for (let s of stagesConfig) {
+                    cMatch = s.center.find(m => !getScore(data, s.key, m));
+                    sMatch = s.side.find(m => !getScore(data, s.key, m));
+                    if (cMatch || sMatch) {
+                        currentStage = s;
+                        break;
+                    }
+                }
+
+                if (!cMatch && !sMatch) {
+                    document.getElementById('stage-badge').innerText = "比赛已全部结束";
+                    document.getElementById('center-court-display').innerHTML = '<div class="empty-state">所有对局已完成</div>';
+                    document.getElementById('side-court-display').innerHTML = '<div class="empty-state">所有对局已完成</div>';
+                    return;
+                }
+
+                // 注入带有补充规则的赛事标题
+                document.getElementById('stage-badge').innerText = "当前赛程：" + currentStage.name;
+
+                const renderCourt = (containerId, matchId, matchesArray) => {
+                    const container = document.getElementById(containerId);
+                    if (!matchId) {
+                        container.innerHTML = '<div class="empty-state">本场地当前阶段比赛已结束</div>';
+                        return;
+                    }
+
+                    const [t1_id, t2_id] = matchId.split('_');
+                    const t1_name = getTeamName(data, t1_id);
+                    const t2_name = getTeamName(data, t2_id);
+
+                    const w1 = getWinsInStage(data, currentStage.key, matchesArray, t1_id);
+                    const w2 = getWinsInStage(data, currentStage.key, matchesArray, t2_id);
+
+                    container.innerHTML = `
+                        <div class="team-box">
+                            <div class="team-name">${t1_name}</div>
+                            <div class="win-badge">当前阶段胜局: ${w1}</div>
+                        </div>
+                        <div class="vs-circle">VS</div>
+                        <div class="team-box">
+                            <div class="team-name">${t2_name}</div>
+                            <div class="win-badge">当前阶段胜局: ${w2}</div>
+                        </div>
+                    `;
+                };
+
+                renderCourt('center-court-display', cMatch, currentStage.center);
+                renderCourt('side-court-display', sMatch, currentStage.side);
+
+            } catch (e) {
+                console.error("加载数据失败，请确保服务已启动:", e);
+            }
+        }
+
+        setInterval(fetchAndUpdate, 5000);
+        fetchAndUpdate();
+    </script>
+</body>
+</html>

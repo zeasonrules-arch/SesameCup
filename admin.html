@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台图形化比分管理 | 芝麻杯</title>
+    <style>
+        :root { --blue: #007AFF; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --gray: #86868b; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .header p { color: var(--gray); margin-top: 5px; }
+        .container { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        .card h2 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .match-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #eee; }
+        .match-info { font-weight: 600; flex: 1; }
+        .match-score input { width: 70px; text-align: center; padding: 8px; border: 1px solid #ccc; border-radius: 8px; font-weight: bold; margin-right: 10px;}
+        .match-score input:focus { outline: none; border-color: var(--blue); }
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;}
+        .btn-save { background: var(--blue); color: white; }
+        .btn-save:hover { background: #005bb5; }
+        .btn-clear { background: #e5e5ea; color: #333; margin-left: 5px; }
+        .btn-clear:hover { background: #d1d1d6; }
+        .rank-list { font-size: 14px; line-height: 1.8; }
+        .rank-list b { display: inline-block; width: 40px; color: var(--gray);}
+        @media (max-width: 800px) { .container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏐 赛事后台图形化管理面板</h1>
+        <p>录入比分后自动重新计算排名，所有改动将实时反馈至前台大屏</p>
+    </div>
+
+    <div class="container">
+        <div class="editor-section">
+            <div class="card">
+                <h2>小组赛 (Group)</h2>
+                <div id="matches-group"></div>
+            </div>
+            <div class="card">
+                <h2>交叉淘汰 (Knockout)</h2>
+                <div id="matches-knockout"></div>
+            </div>
+            <div class="card">
+                <h2>排位赛 (Placement)</h2>
+                <div id="matches-placement"></div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="card">
+                <h2>📊 实时计算数据看板</h2>
+                <div style="font-size: 12px; color: var(--gray); margin-bottom: 15px;">数据每3秒自动刷新</div>
+
+                <h4>小组排名</h4>
+                <div class="rank-list" id="stat-group">加载中...</div>
+
+                <h4>淘汰流向队伍 (C组/D组)</h4>
+                <div class="rank-list" id="stat-knockout">加载中...</div>
+
+                <h4>排位赛数据 (胜场 / 净胜分)</h4>
+                <div class="rank-list" id="stat-placement">加载中...</div>
+
+                <h4>🏆 最终名次</h4>
+                <div class="rank-list" id="stat-final">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const matchDict = {
+            group: { 'a1_a2': 'A组', 'a3_a4': 'A组', 'a1_a3': 'A组', 'a2_a4': 'A组', 'a1_a4': 'A组', 'a2_a3': 'A组', 'b1_b2': 'B组', 'b3_b4': 'B组', 'b1_b3': 'B组', 'b2_b4': 'B组', 'b1_b4': 'B组', 'b2_b3': 'B组' },
+            knockout: { 'A1_B4': '胜进C 负进D', 'A4_B1': '胜进C 负进D', 'A2_B3': '胜进C 负进D', 'A3_B2': '胜进C 负进D' },
+            placement: { 'C1_C2': '1-4名', 'C3_C4': '1-4名', 'C1_C3': '1-4名', 'C2_C4': '1-4名', 'C1_C4': '1-4名', 'C2_C3': '1-4名', 'D1_D2': '5-8名', 'D3_D4': '5-8名', 'D1_D3': '5-8名', 'D2_D4': '5-8名', 'D1_D4': '5-8名', 'D2_D3': '5-8名' }
+        };
+
+        function getTeamName(data, tId) {
+            if (data.teams[tId]) return data.teams[tId];
+            if (data.calculated.ranks && data.calculated.ranks[tId]) return data.calculated.ranks[tId].name || tId;
+            if (data.calculated.placement_teams && data.calculated.placement_teams[tId]) return data.calculated.placement_teams[tId] || tId;
+            return tId;
+        }
+
+        async function updateScore(stage, match) {
+            const input = document.getElementById(`input-${match}`);
+            const score = input.value.trim();
+            const res = await fetch('/api/update', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({stage, match, score})
+            });
+            if(res.ok) {
+                input.style.backgroundColor = '#e6ffe6';
+                setTimeout(() => input.style.backgroundColor = '', 1000);
+                loadData();
+            }
+        }
+
+        async function clearScore(stage, match) {
+            document.getElementById(`input-${match}`).value = '';
+            await updateScore(stage, match);
+        }
+
+        function renderMatches(data) {
+            const renderSection = (stageKey, mapKey, containerId) => {
+                const container = document.getElementById(containerId);
+                let html = '';
+                for (let match in matchDict[mapKey]) {
+                    const [t1, t2] = match.split('_');
+                    const n1 = getTeamName(data, t1);
+                    const n2 = getTeamName(data, t2);
+                    const tag = matchDict[mapKey][match];
+                    const score = (mapKey === 'placement') ? (data.scores.placement_top[match] || data.scores.placement_bot[match] || '') : data.scores[stageKey][match];
+                    const apiStage = (mapKey === 'placement') ? (match.startsWith('C') ? 'placement_top' : 'placement_bot') : stageKey;
+
+                    html += `
+                        <div class="match-row">
+                            <div style="width: 50px; font-size:12px; color:var(--gray)">[${tag}]</div>
+                            <div class="match-info">${n1} <span style="color:#ccc; margin:0 10px;">vs</span> ${n2}</div>
+                            <div class="match-score">
+                                <input type="text" id="input-${match}" value="${score}" placeholder="如 30-28">
+                                <button class="btn btn-save" onclick="updateScore('${apiStage}', '${match}')">保存</button>
+                                <button class="btn btn-clear" onclick="clearScore('${apiStage}', '${match}')">撤回</button>
+                            </div>
+                        </div>`;
+                }
+                // 只有当输入框没被聚焦选中时才更新列表（防止打字打一半被刷没）
+                if (container.children.length === 0 || !document.activeElement.id.startsWith('input-')) {
+                    container.innerHTML = html;
+                }
+            };
+
+            renderSection('group', 'group', 'matches-group');
+            renderSection('knockout', 'knockout', 'matches-knockout');
+            renderSection('placement', 'placement', 'matches-placement');
+        }
+
+        function renderStats(data) {
+            const r = data.calculated.ranks;
+            document.getElementById('stat-group').innerHTML =
+                `<b>A1:</b> ${r.A1?.name || ''} <br><b>A2:</b> ${r.A2?.name || ''} <br><b>A3:</b> ${r.A3?.name || ''} <br><b>A4:</b> ${r.A4?.name || ''} <br>
+                 <b>B1:</b> ${r.B1?.name || ''} <br><b>B2:</b> ${r.B2?.name || ''} <br><b>B3:</b> ${r.B3?.name || ''} <br><b>B4:</b> ${r.B4?.name || ''}`;
+
+            const pt = data.calculated.placement_teams;
+            document.getElementById('stat-knockout').innerHTML =
+                `<b>C1:</b> ${pt.C1 || ''} <br><b>C2:</b> ${pt.C2 || ''} <br><b>C3:</b> ${pt.C3 || ''} <br><b>C4:</b> ${pt.C4 || ''} <br>
+                 <b>D1:</b> ${pt.D1 || ''} <br><b>D2:</b> ${pt.D2 || ''} <br><b>D3:</b> ${pt.D3 || ''} <br><b>D4:</b> ${pt.D4 || ''}`;
+
+            const topStats = data.calculated.placement_standings?.top || {};
+            const botStats = data.calculated.placement_standings?.bot || {};
+            let pStr = '';
+            ['C1','C2','C3','C4'].forEach(k => pStr += `<b>${k}:</b> 胜 ${topStats[k]?.wins||0} / 净 ${topStats[k]?.net_points||0}<br>`);
+            ['D1','D2','D3','D4'].forEach(k => pStr += `<b>${k}:</b> 胜 ${botStats[k]?.wins||0} / 净 ${botStats[k]?.net_points||0}<br>`);
+            document.getElementById('stat-placement').innerHTML = pStr;
+
+            const fs = data.calculated.final_standings;
+            document.getElementById('stat-final').innerHTML =
+                `<b>冠军:</b> ${fs['冠军'] || ''} <br><b>亚军:</b> ${fs['亚军'] || ''} <br><b>季军:</b> ${fs['季军'] || ''} <br><b>殿军:</b> ${fs['殿军'] || ''} <br><br>
+                 <b>小冠军:</b> ${fs['小冠军'] || ''} <br><b>小亚军:</b> ${fs['小亚军'] || ''} <br><b>小季军:</b> ${fs['小季军'] || ''} <br><b>小殿军:</b> ${fs['小殿军'] || ''}`;
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch('data.json?t=' + Date.now());
+                const data = await res.json();
+                renderMatches(data);
+                renderStats(data);
+            } catch (e) { console.error(e); }
+        }
+
+        loadData();
+        setInterval(loadData, 3000);
+    </script>
+</body>
+</html>
