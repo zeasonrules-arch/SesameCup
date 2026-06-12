@@ -47,7 +47,6 @@
             will-change: transform;
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
-            /* 8个方块为一个周期 (120px * 8 = 960px) */
             animation: moveDiag 15s linear infinite;
         }
 
@@ -127,7 +126,7 @@
         .court-title { font-size: 20px; font-weight: 700; margin-bottom: 25px; color: #1d1d1f; }
         .match-display { display: flex; align-items: center; justify-content: space-between; width: 100%;}
         .team-box { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .team-name { font-size: 24px; font-weight: 700; line-height: 1.2; }
+        .team-name { font-size: 24px; font-weight: 700; line-height: 1.2; text-align: center; }
 
         .win-badge {
             background: white;
@@ -137,10 +136,15 @@
             font-weight: 600;
             color: var(--text-secondary);
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            white-space: nowrap;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .win-badge strong { color: var(--text-main); font-weight: 800;}
+        .stat-divider { color: #d1d1d6; }
 
         .vs-circle {
             width: 40px; height: 40px;
@@ -161,8 +165,7 @@
             font-weight: 700;
             color: #1d1d1f;
             box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
-            /* 保证遇到长队名时不会挤破布局 */
-            max-width: 90%;
+            max-width: 95%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -170,13 +173,39 @@
 
         .empty-state { color: var(--text-secondary); font-size: 16px; padding: 40px 0; font-weight: 500; }
 
+        /* ========= 终极移动端完美适配 ========= */
         @media (max-width: 768px) {
-            .glass-panel { padding: 30px 20px; border-radius: 30px; overflow-y: auto; max-height: 90vh; }
-            .courts-container { grid-template-columns: 1fr; }
-            h1 { font-size: 28px; }
+            .glass-panel { width: 92%; padding: 25px 15px; border-radius: 30px; overflow-y: auto; max-height: 95vh; }
+            .courts-container { grid-template-columns: 1fr; gap: 20px; }
+            .court-card { padding: 20px 10px; }
+            h1 { font-size: 24px; margin-bottom: 5px; }
+            .subtitle { font-size: 11px; line-height: 1.4; margin-bottom: 20px; }
+            .stage-badge { font-size: 13px; padding: 6px 14px; margin-bottom: 20px; }
+
             .team-name { font-size: 18px; }
-            .vs-circle { width: 30px; height: 30px; font-size: 12px; }
-            .win-badge { font-size: 11px; padding: 4px 10px; }
+            .team-box { gap: 8px; }
+
+            .vs-circle { width: 32px; height: 32px; font-size: 12px; margin: 0 5px; }
+
+            /* 手机端胜场标签智能折叠：去掉竖线，上下叠放 */
+            .win-badge {
+                flex-direction: column;
+                gap: 3px;
+                padding: 6px 12px;
+                font-size: 11px;
+                border-radius: 12px;
+                width: auto;
+            }
+            .stat-divider { display: none; }
+
+            /* 手机端裁判允许换行，不加省略号截断 */
+            .referee-badge {
+                font-size: 12px;
+                padding: 6px 14px;
+                margin-top: 18px;
+                white-space: normal;
+                line-height: 1.4;
+            }
         }
     </style>
 </head>
@@ -232,7 +261,7 @@
             patternContainer.appendChild(row);
         }
 
-        // 2. 裁判映射字典（分为固定人名和小队映射）
+        // 2. 裁判映射字典
         const staticReferees = {
             'a1_a2': 'KK/坤 凯歌', 'a3_a4': '智/link 小黑', 'a1_a3': '白/DPR 宇',
             'a2_a4': '赖/RSA KMI', 'a1_a4': '白/RSA KMI', 'a2_a3': '豆/米妮 什么',
@@ -262,7 +291,6 @@
             return null;
         }
 
-        // 增强版：获取队伍真实名称
         function getTeamName(data, tId) {
             if (!tId) return "待定";
             if (data.teams && data.teams[tId]) return data.teams[tId];
@@ -271,22 +299,18 @@
             return tId;
         }
 
-        // 动态解析裁判名称（将代号转为实际队名）
         function getRefereeName(data, matchId) {
             if (staticReferees[matchId]) return staticReferees[matchId];
             if (dynamicReferees[matchId]) {
                 const [r1, r2] = dynamicReferees[matchId];
                 const n1 = getTeamName(data, r1);
                 const n2 = getTeamName(data, r2);
-
-                // 如果返回的还是 A1/B1 这种代号，补充一个“队”字以便区分；如果已经是队名，则直接使用
                 const formatName = (code, name) => name === code ? `${name}队` : name;
                 return `${formatName(r1, n1)} / ${formatName(r2, n2)}`;
             }
             return '待定';
         }
 
-        // 计算当前阶段的胜场数
         function getWinsInStage(data, stageKey, matchArray, teamId) {
             let teamName = getTeamName(data, teamId);
             if (!teamName || teamName === '待定') return 0;
@@ -307,9 +331,8 @@
             return wins;
         }
 
-        // 全局计算该队伍整届比赛的累计胜场
         function calculateTotalWins(data, teamName) {
-            if (!teamName || teamName === '待定' || teamName.length <= 2) return 0; // 防止拿 A1 去算总分
+            if (!teamName || teamName === '待定' || teamName.length <= 2) return 0;
             let totalWins = 0;
             const allStages = ['group', 'knockout', 'placement_top', 'placement_bot'];
             allStages.forEach(stage => {
@@ -333,6 +356,7 @@
 
         async function fetchAndUpdate() {
             try {
+                // 加时间戳防止缓存
                 const res = await fetch('data.json?t=' + Date.now());
                 const data = await res.json();
 
@@ -373,25 +397,32 @@
                     const t1_name = getTeamName(data, t1_id);
                     const t2_name = getTeamName(data, t2_id);
 
-                    // 获取阶段胜场和总胜场
                     const w1_stage = getWinsInStage(data, currentStage.key, matchesArray, t1_id);
                     const w2_stage = getWinsInStage(data, currentStage.key, matchesArray, t2_id);
                     const w1_total = calculateTotalWins(data, t1_name);
                     const w2_total = calculateTotalWins(data, t2_name);
 
+                    // 响应式 DOM 结构注入：使用 span 和 class 进行精细化布局控制
                     container.innerHTML = `
                         <div class="team-box">
                             <div class="team-name">${t1_name}</div>
-                            <div class="win-badge">本赛程胜场: <strong>${w1_stage}</strong> &nbsp;|&nbsp; 累计总胜场: <strong>${w1_total}</strong></div>
+                            <div class="win-badge">
+                                <span>本赛程胜场: <strong>${w1_stage}</strong></span>
+                                <span class="stat-divider">|</span>
+                                <span>累计总胜场: <strong>${w1_total}</strong></span>
+                            </div>
                         </div>
                         <div class="vs-circle">VS</div>
                         <div class="team-box">
                             <div class="team-name">${t2_name}</div>
-                            <div class="win-badge">本赛程胜场: <strong>${w2_stage}</strong> &nbsp;|&nbsp; 累计总胜场: <strong>${w2_total}</strong></div>
+                            <div class="win-badge">
+                                <span>本赛程胜场: <strong>${w2_stage}</strong></span>
+                                <span class="stat-divider">|</span>
+                                <span>累计总胜场: <strong>${w2_total}</strong></span>
+                            </div>
                         </div>
                     `;
 
-                    // 动态获取当值裁判队伍并渲染
                     const referee = getRefereeName(data, matchId);
                     refContainer.innerHTML = `<div class="referee-badge">🏐 当值裁判：${referee}</div>`;
                 };
