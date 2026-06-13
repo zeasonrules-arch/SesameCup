@@ -25,10 +25,10 @@
       "b2_b3": "15-25"
     },
     "knockout": {
-      "A1_B4": "",
-      "A4_B1": "",
-      "A2_B3": "",
-      "A3_B2": ""
+      "A1_B4": "25-18",
+      "A4_B1": "16-25",
+      "A2_B3": "14-25",
+      "A3_B2": "20-25"
     },
     "placement_top": {
       "C1_C2": "",
@@ -164,11 +164,95 @@
         "t2": "深莞牛马"
       }
     },
-    "placement_teams": {},
-    "final_standings": {},
+    "placement_teams": {
+      "C1": "小白队",
+      "D1": "美少女战士队",
+      "C4": "你多接我少接",
+      "D4": "九仙女采芝麻",
+      "C2": "WeCan",
+      "D2": "江西队",
+      "C3": "深莞牛马",
+      "D3": "什么队"
+    },
+    "final_standings": {
+      "冠军": "小白队",
+      "亚军": "WeCan",
+      "季军": "深莞牛马",
+      "殿军": "你多接我少接",
+      "小冠军": "美少女战士队",
+      "小亚军": "江西队",
+      "小季军": "什么队",
+      "小殿军": "九仙女采芝麻"
+    },
     "placement_standings": {
-      "top": {},
-      "bot": {}
+      "top": {
+        "C1": {
+          "id": "C1",
+          "name": "小白队",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "C2": {
+          "id": "C2",
+          "name": "WeCan",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "C3": {
+          "id": "C3",
+          "name": "深莞牛马",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "C4": {
+          "id": "C4",
+          "name": "你多接我少接",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        }
+      },
+      "bot": {
+        "D1": {
+          "id": "D1",
+          "name": "美少女战士队",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "D2": {
+          "id": "D2",
+          "name": "江西队",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "D3": {
+          "id": "D3",
+          "name": "什么队",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        },
+        "D4": {
+          "id": "D4",
+          "name": "九仙女采芝麻",
+          "wins": 0,
+          "points": 0,
+          "net_points": 0,
+          "h2h": {}
+        }
+      }
     }
   }
 }
