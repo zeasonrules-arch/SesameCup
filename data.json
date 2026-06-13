@@ -12,13 +12,13 @@
   "scores": {
     "group": {
       "a1_a2": "16-25",
-      "a3_a4": "",
+      "a3_a4": "25-19",
       "a1_a3": "",
       "a2_a4": "",
       "a1_a4": "",
       "a2_a3": "",
       "b1_b2": "25-11",
-      "b3_b4": "",
+      "b3_b4": "25-22",
       "b1_b3": "",
       "b2_b4": "",
       "b1_b4": "",
@@ -72,34 +72,42 @@
       "A2": {
         "id": "a3",
         "name": "江西队",
-        "wins": 0,
-        "points": 0,
-        "net_points": 0,
-        "h2h": {}
+        "wins": 1,
+        "points": 25,
+        "net_points": 6,
+        "h2h": {
+          "a4": 1
+        }
       },
       "B2": {
         "id": "b3",
         "name": "你多接我少接",
-        "wins": 0,
-        "points": 0,
-        "net_points": 0,
-        "h2h": {}
+        "wins": 1,
+        "points": 25,
+        "net_points": 3,
+        "h2h": {
+          "b4": 1
+        }
       },
       "A3": {
         "id": "a4",
         "name": "什么队",
         "wins": 0,
-        "points": 0,
-        "net_points": 0,
-        "h2h": {}
+        "points": 19,
+        "net_points": -6,
+        "h2h": {
+          "a3": -1
+        }
       },
       "B3": {
         "id": "b4",
         "name": "WeCan",
         "wins": 0,
-        "points": 0,
-        "net_points": 0,
-        "h2h": {}
+        "points": 22,
+        "net_points": -3,
+        "h2h": {
+          "b3": -1
+        }
       },
       "A4": {
         "id": "a1",
