@@ -31,16 +31,16 @@
       "A3_B2": "20-25"
     },
     "placement_top": {
-      "C1_C2": "",
-      "C3_C4": "",
+      "C1_C2": "25-19",
+      "C3_C4": "20-25",
       "C1_C3": "",
       "C2_C4": "",
       "C1_C4": "",
       "C2_C3": ""
     },
     "placement_bot": {
-      "D1_D2": "",
-      "D3_D4": "",
+      "D1_D2": "24-25",
+      "D3_D4": "25-23",
       "D1_D3": "",
       "D2_D4": "",
       "D1_D4": "",
@@ -176,12 +176,12 @@
     },
     "final_standings": {
       "冠军": "小白队",
-      "亚军": "WeCan",
+      "亚军": "你多接我少接",
       "季军": "深莞牛马",
-      "殿军": "你多接我少接",
-      "小冠军": "美少女战士队",
+      "殿军": "WeCan",
+      "小冠军": "什么队",
       "小亚军": "江西队",
-      "小季军": "什么队",
+      "小季军": "美少女战士队",
       "小殿军": "九仙女采芝麻"
     },
     "placement_standings": {
@@ -189,68 +189,84 @@
         "C1": {
           "id": "C1",
           "name": "小白队",
-          "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "wins": 1,
+          "points": 25,
+          "net_points": 6,
+          "h2h": {
+            "C2": 1
+          }
         },
-        "C2": {
-          "id": "C2",
-          "name": "WeCan",
-          "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+        "C4": {
+          "id": "C4",
+          "name": "你多接我少接",
+          "wins": 1,
+          "points": 25,
+          "net_points": 5,
+          "h2h": {
+            "C3": 1
+          }
         },
         "C3": {
           "id": "C3",
           "name": "深莞牛马",
           "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "points": 20,
+          "net_points": -5,
+          "h2h": {
+            "C4": -1
+          }
         },
-        "C4": {
-          "id": "C4",
-          "name": "你多接我少接",
+        "C2": {
+          "id": "C2",
+          "name": "WeCan",
           "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "points": 19,
+          "net_points": -6,
+          "h2h": {
+            "C1": -1
+          }
         }
       },
       "bot": {
-        "D1": {
-          "id": "D1",
-          "name": "美少女战士队",
-          "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+        "D3": {
+          "id": "D3",
+          "name": "什么队",
+          "wins": 1,
+          "points": 25,
+          "net_points": 2,
+          "h2h": {
+            "D4": 1
+          }
         },
         "D2": {
           "id": "D2",
           "name": "江西队",
-          "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "wins": 1,
+          "points": 25,
+          "net_points": 1,
+          "h2h": {
+            "D1": 1
+          }
         },
-        "D3": {
-          "id": "D3",
-          "name": "什么队",
+        "D1": {
+          "id": "D1",
+          "name": "美少女战士队",
           "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "points": 24,
+          "net_points": -1,
+          "h2h": {
+            "D2": -1
+          }
         },
         "D4": {
           "id": "D4",
           "name": "九仙女采芝麻",
           "wins": 0,
-          "points": 0,
-          "net_points": 0,
-          "h2h": {}
+          "points": 23,
+          "net_points": -2,
+          "h2h": {
+            "D3": -1
+          }
         }
       }
     }
